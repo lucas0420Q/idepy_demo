@@ -4,6 +4,9 @@
   "description": "Frontend de la demo IDEPY: consulta de calles por distrito sobre un mapa",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
