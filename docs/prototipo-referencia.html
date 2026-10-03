@@ -1,0 +1,503 @@
+<title>IDEPY Consulta Vial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Leaflet 1.9.4 (inline: la política del artifact solo permite scripts desde CDN) */
+__LEAFLET_CSS__
+</style>
+<style>
+/* Layout: panel de consulta a la izquierda, mapa a la derecha; en teléfono, mapa arriba y panel debajo. */
+:root {
+  --bg: #e9edea;
+  --surface: #f9fbfa;
+  --land: #dfe5e0;
+  --ink: #16201c;
+  --muted: #56645e;
+  --line: #c6d0ca;
+  --accent: #0d6b5b;
+  --accent-soft: #d3e7e1;
+  --hl: #e09a12;
+  --hl-case: #2b1f00;
+  --net: #93a39b;
+  --warn: #8a5300;
+  --warn-soft: #f6e6c8;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1412; --surface: #161d1a; --land: #1b2420; --ink: #e2e9e5; --muted: #95a59d;
+    --line: #2d3833; --accent: #52c3a8; --accent-soft: #1d3a33; --hl: #f3b53a; --hl-case: #000000;
+    --net: #4d5d56; --warn: #f0c070; --warn-soft: #3a2e17; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1412; --surface: #161d1a; --land: #1b2420; --ink: #e2e9e5; --muted: #95a59d;
+  --line: #2d3833; --accent: #52c3a8; --accent-soft: #1d3a33; --hl: #f3b53a; --hl-case: #000000;
+  --net: #4d5d56; --warn: #f0c070; --warn-soft: #3a2e17; color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+dl { margin: 0; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.45;
+  padding-inline: 16px; padding-block: 16px;
+}
+.app {
+  height: 100%;
+  display: grid; grid-template-columns: minmax(340px, 410px) minmax(0, 1fr); gap: 16px;
+}
+.panel {
+  min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+}
+.mapwrap { position: relative; min-width: 0; min-height: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+#map { position: absolute; inset: 0; }
+
+header.head { padding: 18px 20px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 6px; }
+.eyebrow { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.badge { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); }
+h1 { margin: 0; font-family: var(--f-display); font-stretch: 80%; font-weight: 750; font-size: 26px; line-height: 1.1; letter-spacing: -.005em; text-wrap: balance; }
+.sub { margin: 0; color: var(--muted); font-size: 13.5px; }
+
+.tabs { display: flex; gap: 4px; padding: 10px 16px 0; border-bottom: 1px solid var(--line); }
+.tab { appearance: none; border: 0; background: none; color: var(--muted); font: 600 13.5px var(--f-body); padding: 8px 10px 10px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.scroll { overflow-y: auto; min-height: 0; flex: 1; }
+.section { padding: 16px 20px; display: grid; gap: 12px; }
+
+.form { display: grid; gap: 10px; }
+.field { display: grid; gap: 5px; }
+.field label { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+select, input[type="search"] {
+  width: 100%; font: 500 15px var(--f-body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px;
+}
+input[type="search"] { font-size: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips span { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+.chip { appearance: none; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 500 12.5px var(--f-body); padding: 4px 9px; border-radius: 999px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+
+.summary { font-size: 13.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.summary b { color: var(--ink); font-weight: 650; }
+
+.results { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--line); max-height: 300px; overflow-y: auto; }
+.results li { border-bottom: 1px solid var(--line); }
+.res {
+  appearance: none; width: 100%; text-align: left; background: none; border: 0; color: inherit; cursor: pointer;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 6px 10px 10px; font: inherit;
+  border-left: 3px solid transparent;
+}
+.res:hover { background: var(--bg); }
+.res[aria-current="true"] { border-left-color: var(--hl); background: var(--bg); }
+.res .nm { font-weight: 650; font-size: 14.5px; overflow-wrap: anywhere; }
+.res .ds { grid-column: 1; font-size: 12.5px; color: var(--muted); }
+.res .ln { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.dchip { display: inline-block; font-family: var(--f-mono); font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); margin-right: 6px; letter-spacing: .03em; }
+.flag { display: inline-block; font-family: var(--f-mono); font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); margin-left: 4px; }
+.more { font-size: 13px; color: var(--muted); padding: 8px 10px; }
+
+.empty { border: 1px dashed var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 8px; font-size: 14px; }
+.empty b { font-weight: 650; }
+.linkbtn { appearance: none; border: 0; background: none; padding: 0; color: var(--accent); font: 600 14px var(--f-body); cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+
+.detail { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface); }
+.detail .top { padding: 14px 14px 12px; display: grid; gap: 4px; border-top: 4px solid var(--hl); }
+.detail h2 { margin: 0; font-family: var(--f-display); font-stretch: 85%; font-weight: 720; font-size: 20px; line-height: 1.15; overflow-wrap: anywhere; text-wrap: balance; }
+.detail .loc { font-size: 13px; color: var(--muted); }
+.kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.kv div { padding: 10px 14px; display: grid; gap: 2px; border-right: 1px solid var(--line); }
+.kv div:last-child { border-right: 0; }
+.kv dt, .lbl { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.kv dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; font-size: 15px; }
+.block { padding: 12px 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.bars { display: grid; gap: 6px; }
+.bar { display: grid; grid-template-columns: 132px minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 13px; }
+.bar .track { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--accent); border-radius: 4px; }
+.bar .v { font-family: var(--f-mono); font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+.note.warn { color: var(--warn); }
+.src { font-size: 13px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; }
+.src dt { color: var(--muted); }
+.src dd { margin: 0; overflow-wrap: anywhere; }
+.mono { font-family: var(--f-mono); font-size: 12.5px; }
+.close { appearance: none; border: 0; background: none; color: var(--muted); font: 600 13px var(--f-body); cursor: pointer; padding: 0; justify-self: start; }
+.close:hover { color: var(--ink); }
+
+.meta h3 { margin: 6px 0 0; font-family: var(--f-display); font-stretch: 85%; font-size: 16px; font-weight: 700; }
+.meta table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.meta th, .meta td { text-align: left; padding: 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.meta th { font-weight: 500; color: var(--muted); width: 42%; padding-right: 10px; }
+.meta td.n { font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.meta ol, .meta ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 13.5px; }
+.meta code { font-family: var(--f-mono); font-size: 12px; background: var(--bg); padding: 1px 4px; border-radius: 3px; }
+
+footer.foot { padding: 10px 20px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+
+/* Mapa */
+.leaflet-container { background: var(--land); font-family: var(--f-body); }
+.leaflet-tooltip { background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(0,0,0,.15); font: 600 12.5px var(--f-body); padding: 4px 8px; }
+.leaflet-tooltip-top::before { border-top-color: var(--line); }
+.leaflet-tooltip .t2 { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; }
+.leaflet-bar a, .leaflet-bar a:hover { background: var(--surface); color: var(--ink); border-bottom-color: var(--line); }
+.leaflet-bar { border: 1px solid var(--line) !important; box-shadow: none !important; }
+.leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 85%, transparent) !important; color: var(--muted); font-size: 11px; }
+.leaflet-control-scale-line { background: color-mix(in srgb, var(--surface) 80%, transparent); color: var(--ink); border-color: var(--ink); }
+.dlabel { font-family: var(--f-display); font-stretch: 75%; font-weight: 800; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); white-space: nowrap; text-align: center; pointer-events: none; text-shadow: 0 0 3px var(--land), 0 0 6px var(--land); }
+.legend { position: absolute; z-index: 500; left: 12px; bottom: 12px; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 4px; font-size: 12px; }
+.legend div { display: flex; align-items: center; gap: 8px; }
+.sw { width: 22px; height: 0; border-top: 2px solid var(--net); }
+.sw.m { border-top: 3px solid var(--accent); }
+.sw.s { border-top: 5px solid var(--hl); box-shadow: 0 0 0 1px var(--hl-case); }
+.sw.d { height: 10px; border: 1.5px solid var(--muted); background: var(--accent-soft); }
+.mapnote { position: absolute; z-index: 500; right: 12px; top: 12px; max-width: 260px; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 820px) {
+  html, body { height: auto; }
+  .app { display: flex; flex-direction: column-reverse; height: auto; }
+  .mapwrap { height: 52vh; min-height: 300px; }
+  .panel { overflow: visible; }
+  .scroll { overflow: visible; }
+  .mapnote { display: none; }
+  .bar { grid-template-columns: 92px minmax(0, 1fr) 64px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="app">
+  <section class="panel" aria-label="Consulta">
+    <header class="head">
+      <div class="eyebrow">IDEPY · Caso de uso: consultar información vial <span class="badge">Prototipo</span></div>
+      <h1>Consulta de vías por distrito</h1>
+      <p class="sub">Muestra real del INE, Cartografía Digital 2022: Lambaré, Fernando de la Mora y San Lorenzo (Central).</p>
+    </header>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-buscar" aria-selected="true" aria-controls="pane-buscar">Buscar</button>
+      <button class="tab" role="tab" id="tab-meta" aria-selected="false" aria-controls="pane-meta">Metadatos del recurso</button>
+    </div>
+    <div class="scroll">
+      <div id="pane-buscar" role="tabpanel" aria-labelledby="tab-buscar">
+        <div class="section">
+          <form class="form" id="form" autocomplete="off">
+            <div class="field">
+              <label for="dist">Unidad administrativa (distrito)</label>
+              <select id="dist"></select>
+            </div>
+            <div class="field">
+              <label for="q">Nombre de la calle</label>
+              <input type="search" id="q" placeholder="Ej.: Cerro Corá, Mcal. López, 14 de Mayo" enterkeyhint="search">
+            </div>
+            <div class="chips" id="examples"><span>Probar:</span></div>
+          </form>
+          <div class="summary" id="summary"></div>
+          <div id="out"></div>
+          <div id="detail"></div>
+        </div>
+      </div>
+      <div id="pane-meta" role="tabpanel" aria-labelledby="tab-meta" hidden>
+        <div class="section meta" id="meta"></div>
+      </div>
+    </div>
+    <footer class="foot">Prototipo para validar la interfaz. La versión final consulta PostgreSQL/PostGIS mediante una API Node.js.</footer>
+  </section>
+  <section class="mapwrap" aria-label="Mapa">
+    <div id="map"></div>
+    <div class="legend" aria-hidden="true">
+      <div><span class="sw s"></span>Calle seleccionada</div>
+      <div><span class="sw m"></span>Otras coincidencias</div>
+      <div><span class="sw"></span>Red vial con nombre</div>
+      <div><span class="sw d"></span>Límite de distrito</div>
+    </div>
+    <div class="mapnote">Sin mapa base en este prototipo. El fondo es la red vial de la muestra; la versión final agrega OpenStreetMap.</div>
+  </section>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const DIST = Object.fromEntries(D.districts.map(d => [d.dist, d]));
+  const nf = new Intl.NumberFormat('es-PY');
+  const nf1 = new Intl.NumberFormat('es-PY', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const nf2 = new Intl.NumberFormat('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtLen = m => m >= 1000 ? nf2.format(m / 1000) + ' km' : nf.format(Math.round(m)) + ' m';
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const title = s => s.toLowerCase().replace(/(^|[\s(])(\p{L}+)/gu, (m, a, w) => a + (a && ['de','la','del','y','el','los','las'].includes(w) ? w : w[0].toUpperCase() + w.slice(1)));
+
+  // Normalización de búsqueda: misma regla que nombre_busqueda en la base
+  function norm(s) {
+    s = s.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    s = s.replace(/\?/g, 'N').replace(/[^A-Z0-9 ]/g, ' ');
+    return s.split(/\s+/).filter(Boolean).map(t => D.abbr[t] || t).join(' ');
+  }
+  D.streets.forEach((s, i) => { s.i = i; s.toks = s.k.split(' '); });
+
+  function search(q, dist) {
+    const qn = norm(q);
+    if (!qn) return { qn, list: [], other: 0 };
+    const qt = qn.split(' ');
+    const hits = [];
+    for (const s of D.streets) {
+      let ok = true;
+      for (const t of qt) {
+        if (/^\d+$/.test(t) ? !s.toks.includes(t) : !s.k.includes(t)) { ok = false; break; }
+      }
+      if (!ok) continue;
+      const score = s.k === qn ? 0 : s.k.startsWith(qn) ? 1 : qt.every(t => s.toks.some(k => k.startsWith(t))) ? 2 : 3;
+      hits.push({ s, score });
+    }
+    hits.sort((a, b) => a.score - b.score || a.s.k.localeCompare(b.s.k) || DIST[a.s.d].name.localeCompare(DIST[b.s.d].name));
+    const list = hits.filter(h => !dist || h.s.d === dist).map(h => h.s);
+    return { qn, list, other: dist ? hits.length - list.length : 0 };
+  }
+
+  // ---------- Mapa ----------
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const map = L.map('map', { preferCanvas: true, zoomSnap: 0.25, minZoom: 11, maxZoom: 19, attributionControl: true });
+  map.attributionControl.setPrefix(false).addAttribution('Datos: INE, Cartografía Digital 2022');
+  L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+  const renderer = L.canvas({ padding: 0.4, tolerance: 6 });
+  const toLL = flat => { const a = []; for (let i = 0; i < flat.length; i += 2) a.push([flat[i + 1], flat[i]]); return a; };
+
+  const distLayers = {};
+  D.districts.forEach(d => {
+    const poly = L.polygon(d.rings.map(r => r.map(([x, y]) => [y, x])), { renderer, interactive: false });
+    poly.addTo(map); distLayers[d.dist] = poly;
+    L.marker([d.label[1], d.label[0]], { interactive: false, keyboard: false,
+      icon: L.divIcon({ className: 'dlabel', html: esc(d.name), iconSize: [220, 18], iconAnchor: [110, 9] }) }).addTo(map);
+  });
+  const allBounds = L.featureGroup(Object.values(distLayers)).getBounds();
+  map.fitBounds(allBounds, { padding: [20, 20] });
+
+  const lines = D.streets.map(s => {
+    const pl = L.polyline(s.g.map(toLL), { renderer, smoothFactor: 1 });
+    pl.bindTooltip(`${esc(s.n)}<span class="t2">${esc(title(DIST[s.d].name))}</span>`, { sticky: true, direction: 'top', offset: [0, -6] });
+    pl.on('click', () => { selectStreet(s, true); });
+    pl.addTo(map);
+    return pl;
+  });
+  let selCase = null, selLine = null;
+  let matchSet = new Set();
+
+  function styleAll() {
+    const net = css('--net'), acc = css('--accent'), ink = css('--muted'), soft = css('--accent-soft');
+    const fd = state.dist;
+    D.districts.forEach(d => {
+      const on = !fd || fd === d.dist;
+      distLayers[d.dist].setStyle({ color: ink, weight: on && fd ? 2.2 : 1.4, opacity: on ? 0.9 : 0.35, fillColor: soft, fillOpacity: on ? (fd ? 0.55 : 0.35) : 0.08 });
+    });
+    lines.forEach((pl, i) => {
+      const m = matchSet.has(i);
+      pl.setStyle(m ? { color: acc, weight: 3.4, opacity: 1 } : { color: net, weight: 1.1, opacity: fd && D.streets[i].d !== fd ? 0.35 : 0.9 });
+    });
+    matchSet.forEach(i => lines[i].bringToFront());
+    if (selLine) { selCase.setStyle({ color: css('--hl-case'), weight: 8.5, opacity: 0.85 }); selLine.setStyle({ color: css('--hl'), weight: 4.6, opacity: 1 }); selCase.bringToFront(); selLine.bringToFront(); }
+  }
+
+  // ---------- Estado e interfaz ----------
+  const state = { dist: '', q: '', sel: null, res: null };
+  const $ = id => document.getElementById(id);
+  const selDist = $('dist'), inp = $('q');
+  selDist.innerHTML = '<option value="">Todos los distritos de la muestra</option>' +
+    D.districts.slice().sort((a, b) => a.name.localeCompare(b.name)).map(d => `<option value="${d.dist}">${esc(title(d.name))}</option>`).join('');
+
+  const EX = [
+    { label: 'Cerro Corá', q: 'cerro cora', d: '' },
+    { label: 'Mariscal López', q: 'mariscal lopez', d: '' },
+    { label: 'Muñoz', q: 'muñoz', d: '' },
+    { label: '1 (numérica)', q: '1', d: '' },
+    { label: 'España en Lambaré', q: 'españa', d: '07' },
+  ];
+  EX.forEach(e => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = e.label;
+    b.addEventListener('click', () => { inp.value = e.q; selDist.value = e.d; state.dist = e.d; run(true); });
+    $('examples').appendChild(b);
+  });
+
+  function run(fit) {
+    state.q = inp.value; state.dist = selDist.value;
+    state.res = search(state.q, state.dist);
+    if (state.sel && !state.res.list.includes(state.sel)) clearSel();
+    matchSet = new Set(state.res.list.map(s => s.i));
+    renderList(); renderDetail(); styleAll();
+    if (fit) fitResults();
+  }
+
+  function fitResults() {
+    const list = state.res.list;
+    if (state.sel) return fitStreet(state.sel);
+    if (list.length && list.length <= 80) {
+      const b = L.latLngBounds([]); list.forEach(s => b.extend(lines[s.i].getBounds()));
+      map.flyToBounds(b, { padding: [50, 50], maxZoom: 16.5, duration: 0.6 });
+    } else if (state.dist) {
+      map.flyToBounds(distLayers[state.dist].getBounds(), { padding: [20, 20], duration: 0.6 });
+    } else map.flyToBounds(allBounds, { padding: [20, 20], duration: 0.6 });
+  }
+  function fitStreet(s) { map.flyToBounds(lines[s.i].getBounds(), { padding: [60, 60], maxZoom: 17.5, duration: 0.6 }); }
+
+  function clearSel() {
+    if (selLine) { map.removeLayer(selLine); map.removeLayer(selCase); }
+    selLine = selCase = null; state.sel = null;
+  }
+  function selectStreet(s, fromMap, noFit) {
+    clearSel();
+    state.sel = s;
+    const ll = s.g.map(toLL);
+    selCase = L.polyline(ll, { renderer, interactive: false }).addTo(map);
+    selLine = L.polyline(ll, { renderer, interactive: false }).addTo(map);
+    if (fromMap && !matchSet.has(s.i)) { matchSet = new Set([s.i]); }
+    renderList(); renderDetail(); styleAll(); if (!noFit) fitStreet(s);
+    if (fromMap) showTab('buscar');
+    if (!noFit) $('detail').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function renderList() {
+    const { qn, list, other } = state.res;
+    const out = $('out'), sum = $('summary');
+    const dname = state.dist ? title(DIST[state.dist].name) : null;
+    if (!qn) {
+      sum.innerHTML = '';
+      out.innerHTML = `<div class="empty"><b>Escribí el nombre de una calle.</b><span class="note">La búsqueda ignora mayúsculas, tildes y abreviaturas (Mcal., Avda., Cnel.). Una calle que existe en varios distritos aparece una vez por distrito.</span></div>`;
+      return;
+    }
+    if (!list.length) {
+      sum.innerHTML = '';
+      const where = dname ? ` en ${esc(dname)}` : ' en la muestra';
+      out.innerHTML = `<div class="empty"><b>No se encontraron calles con «${esc(state.q.trim())}»${where}.</b>` +
+        (other ? `<span class="note">Hay ${other} ${other === 1 ? 'coincidencia' : 'coincidencias'} en otros distritos de la muestra.</span><button type="button" class="linkbtn" id="all">Ver en todos los distritos</button>`
+               : `<span class="note">Revisá la escritura o probá con una parte del nombre. Solo se incluyen calles con nombre registrado por el INE.</span>`) + `</div>`;
+      const a = $('all'); if (a) a.addEventListener('click', () => { selDist.value = ''; run(true); });
+      return;
+    }
+    const nd = new Set(list.map(s => s.d)).size;
+    sum.innerHTML = `<span><b>${nf.format(list.length)}</b> ${list.length === 1 ? 'calle' : 'calles'} en <b>${nd}</b> ${nd === 1 ? 'distrito' : 'distritos'}</span><span>${/^\d+$/.test(qn) ? 'Número: coincidencia exacta' : 'Ordenado por relevancia'}</span>`;
+    const MAX = 150;
+    out.innerHTML = '<ul class="results">' + list.slice(0, MAX).map(s =>
+      `<li><button type="button" class="res" data-i="${s.i}" aria-current="${state.sel === s}">
+        <span class="nm">${esc(s.n)}${s.x ? '<span class="flag" title="Carácter dañado en la fuente">?</span>' : ''}</span>
+        <span class="ds"><span class="dchip">${DIST[s.d].code}</span>${esc(title(DIST[s.d].name))} · ${s.s} ${s.s === 1 ? 'segmento' : 'segmentos'}</span>
+        <span class="ln">${fmtLen(s.l)}</span></button></li>`).join('') + '</ul>' +
+      (list.length > MAX ? `<div class="more">Se muestran ${MAX} de ${nf.format(list.length)}. Escribí más letras para acotar.</div>` : '');
+    out.querySelectorAll('.res').forEach(b => b.addEventListener('click', () => selectStreet(D.streets[+b.dataset.i], false)));
+  }
+
+  function bars(obj, total) {
+    return '<div class="bars">' + Object.entries(obj).map(([k, v]) => {
+      const p = total ? v / total * 100 : 0;
+      return `<div class="bar"><span>${esc(k)}</span><span class="track"><span class="fill" style="display:block;width:${p.toFixed(1)}%"></span></span><span class="v">${nf1.format(p)} %</span></div>`;
+    }).join('') + '</div>';
+  }
+
+  function renderDetail() {
+    const s = state.sel, box = $('detail');
+    if (!s) { box.innerHTML = ''; return; }
+    const d = DIST[s.d];
+    const otherDists = D.streets.filter(o => o.k === s.k && o.d !== s.d).map(o => title(DIST[o.d].name));
+    box.innerHTML = `<article class="detail" aria-live="polite">
+      <div class="top">
+        <button type="button" class="close" id="closeSel">← Volver a la lista</button>
+        <h2>${esc(s.n)}</h2>
+        <div class="loc">${esc(title(d.name))}, Departamento Central · código INE <span class="mono">${d.code}</span></div>
+      </div>
+      <dl class="kv">
+        <div><dt>Longitud</dt><dd>${fmtLen(s.l)}</dd></div>
+        <div><dt>Segmentos</dt><dd>${nf.format(s.s)}</dd></div>
+        <div><dt>Distrito</dt><dd>${d.dist}</dd></div>
+      </dl>
+      <div class="block"><span class="lbl">Tipo de vía (por longitud)</span>${bars(s.t, s.l)}</div>
+      <div class="block"><span class="lbl">Superficie (por longitud)</span>${bars(s.r, s.l)}</div>
+      ${s.v.length || s.x || otherDists.length ? `<div class="block"><span class="lbl">Observaciones</span>
+        ${s.x ? `<p class="note warn">El nombre tiene un carácter dañado en la fuente («?», probablemente Ñ). Se muestra tal como lo publica el INE.</p>` : ''}
+        ${s.v.length ? `<p class="note">También registrada como: ${s.v.map(v => `«${esc(v)}»`).join(', ')}. Se agrupan porque coinciden al normalizar.</p>` : ''}
+        ${otherDists.length ? `<p class="note">Una calle con el mismo nombre existe en: ${otherDists.map(esc).join(', ')}.</p>` : ''}
+      </div>` : ''}
+      <div class="block"><span class="lbl">Fuente</span>
+        <dl class="src">
+          <dt>Organismo</dt><dd>Instituto Nacional de Estadística (INE)</dd>
+          <dt>Producto</dt><dd>Cartografía Digital 2022, capa Vías_Central</dd>
+          <dt>Referencia</dt><dd>Período 2022. El INE no publica fecha por calle.</dd>
+          <dt>SRC origen</dt><dd><span class="mono">EPSG:4674</span> SIRGAS 2000</dd>
+        </dl>
+      </div>
+    </article>`;
+    $('closeSel').addEventListener('click', () => { clearSel(); if (!state.res.list.length) matchSet = new Set(); renderList(); renderDetail(); styleAll(); fitResults(); });
+  }
+
+  function renderMeta() {
+    const st = D.stats;
+    const rows = D.districts.slice().sort((a, b) => a.name.localeCompare(b.name));
+    const cov = { '07': '93,2 %', '03': '86,8 %', '14': '67,9 %' };
+    $('meta').innerHTML = `
+      <h3>Recurso</h3>
+      <table><tbody>
+        <tr><th>Nombre</th><td>Vías de Central (muestra de 3 distritos)</td></tr>
+        <tr><th>Organismo productor</th><td>Instituto Nacional de Estadística (INE)</td></tr>
+        <tr><th>Producto</th><td>Cartografía Digital 2022</td></tr>
+        <tr><th>Formato original</th><td>ESRI Shapefile, UTF-8</td></tr>
+        <tr><th>SRC</th><td><code>EPSG:4674</code> SIRGAS 2000. Se muestra en <code>EPSG:4326</code>; la diferencia es submétrica.</td></tr>
+        <tr><th>Unidad de registro</th><td>Segmento de vía, no calle completa</td></tr>
+      </tbody></table>
+      <h3>Contenido de la muestra</h3>
+      <table><thead><tr><th>Distrito</th><td class="n lbl">Segmentos</td><td class="n lbl">Calles</td><td class="n lbl">Con nombre*</td></tr></thead><tbody>
+        ${rows.map(d => `<tr><th>${esc(title(d.name))} <span class="mono">${d.code}</span></th><td class="n">${nf.format(d.segs)}</td><td class="n">${nf.format(d.streets)}</td><td class="n">${cov[d.dist]}</td></tr>`).join('')}
+        <tr><th><b>Total</b></th><td class="n"><b>${nf.format(st.segs)}</b></td><td class="n"><b>${nf.format(st.groups)}</b></td><td></td></tr>
+      </tbody></table>
+      <p class="note">* Porcentaje de segmentos del distrito que tienen nombre en la capa completa. Para todo Central es 41,87 %.</p>
+      <h3>Reglas aplicadas a la muestra</h3>
+      <ol>
+        <li>Distritos: Lambaré, Fernando de la Mora y San Lorenzo.</li>
+        <li>Nombre obligatorio: se excluyen nulos, vacíos y <code>S/N</code>, <code>SN</code>, <code>SIN NOMBRE</code>.</li>
+        <li>Geometría obligatoria y no vacía.</li>
+        <li>Se usa solo <code>Vías_Central</code>; <code>Vías Principales_Central</code> duplica sus registros.</li>
+        <li>Cada segmento se asigna al distrito por código oficial (<code>DPTO + DISTRITO = CLAVE</code>), no por nombre.</li>
+      </ol>
+      <h3>Normalización para la búsqueda</h3>
+      <ul>
+        <li>Se conserva el nombre original del INE y se genera un nombre de búsqueda aparte.</li>
+        <li>Mayúsculas, sin tildes, sin puntuación y espacios simples.</li>
+        <li>Abreviaturas expandidas: Avda., Mcal., Cnel., Gral., Tte., Dr., Prof. y otras.</li>
+        <li>Búsquedas solo numéricas exigen coincidencia exacta («1» no devuelve «14 de Mayo»).</li>
+        <li>Los segmentos se agrupan por nombre de búsqueda y distrito: ${nf.format(st.segs)} segmentos forman ${nf.format(st.groups)} calles.</li>
+      </ul>
+      <h3>Problemas de calidad detectados</h3>
+      <ul>
+        <li>La ficha de metadatos (<code>.qmd</code>) declara <code>EPSG:32721</code>; el <code>.prj</code> y las coordenadas corresponden a <code>EPSG:4674</code>.</li>
+        <li>${st.dmg_segs} segmentos (${st.dmg_names} nombres) tienen «?» en lugar de Ñ, por ejemplo «?ACUNDAY» y «MU?OZ».</li>
+        <li>${st.merged} calles tienen variantes de escritura en el mismo distrito, por ejemplo «AVDA. CARRETERA DE LOPEZ» y «AVDA.CARRETERA DE LOPEZ».</li>
+        <li>Nombres sospechosos que superaron el filtro: «S7n», «O» y «S». Quedan pendientes de revisión.</li>
+        <li>La fuente no incluye fecha de actualización por calle ni responsable en los metadatos.</li>
+      </ul>`;
+  }
+
+  function showTab(t) {
+    ['buscar', 'meta'].forEach(n => { $('tab-' + n).setAttribute('aria-selected', String(n === t)); $('pane-' + n).hidden = n !== t; });
+  }
+  $('tab-buscar').addEventListener('click', () => showTab('buscar'));
+  $('tab-meta').addEventListener('click', () => showTab('meta'));
+
+  let timer;
+  inp.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => run(true), 220); });
+  selDist.addEventListener('change', () => run(true));
+  $('form').addEventListener('submit', e => { e.preventDefault(); clearTimeout(timer); run(true); });
+
+  const mq = matchMedia('(prefers-color-scheme: dark)');
+  (mq.addEventListener ? mq.addEventListener('change', styleAll) : mq.addListener(styleAll));
+  new MutationObserver(styleAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.addEventListener('resize', () => map.invalidateSize());
+
+  renderMeta();
+  inp.value = 'cerro cora';
+  run(false);
+  selectStreet(D.streets.find(s => s.k === 'CERRO CORA' && s.d === '14'), false, true);
+  const b0 = L.latLngBounds([]); state.res.list.forEach(s => b0.extend(lines[s.i].getBounds())); map.fitBounds(b0, { padding: [50, 50] });
+})();
+</script>

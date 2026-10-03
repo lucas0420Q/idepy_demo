@@ -1,0 +1,36 @@
+# Dependencias de Node
+node_modules/
+
+# Variables de entorno con secretos (solo se versionan los .env.example)
+.env
+.env.*
+!.env.example
+
+# Builds y caches
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editores
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Archivos temporales de GeoPackage / QGIS (se generan al abrirlos)
+*.gpkg-wal
+*.gpkg-shm
+*.gpkg-journal
+*.qgz~
+*.qgs~
