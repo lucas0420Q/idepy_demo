@@ -42,6 +42,12 @@ describe('GET /api/recurso', () => {
     assert.ok(codigos.includes('ASIGNACION_POR_CODIGO'));
     assert.ok(codigos.includes('BUSQUEDA_DOBLE_LECTURA_ABREVIATURAS'));
     assert.deepEqual(r.body.resumen, { unidades: 3, segmentos: 10709, calles: 2118, longitud_total_m: r.body.resumen.longitud_total_m });
+    assert.deepEqual(r.body.calidad, {
+      segmentos_con_caracter_danado: 75,
+      nombres_con_caracter_danado: 11,
+      segmentos_fuera_de_su_unidad: 74,
+      calles_con_variantes: 21,
+    });
   });
 });
 
@@ -53,6 +59,7 @@ describe('GET /api/unidades', () => {
     assert.deepEqual(r.body.features.map((f) => f.properties.codigo).sort(), ['1103', '1107', '1114']);
     const [lon, lat] = r.body.features[0].geometry.coordinates[0][0][0];
     assert.ok(lon > -58 && lon < -57 && lat > -26 && lat < -25, 'coordenadas lon/lat de Gran Asunción');
+    assert.equal(r.body.features[0].properties.etiqueta.length, 2);
   });
 });
 
@@ -188,6 +195,7 @@ describe('GET /api/vias/:id (detalle)', () => {
     assert.equal(suma(p.por_superficie), p.longitud_total_m);
     assert.equal(suma(p.segmentos), p.longitud_total_m);
     assert.equal(p.fuentes[0].producto, 'Cartografía Digital 2022');
+    assert.deepEqual(p.misma_calle_en_otras_unidades.map((o) => o.codigo).sort(), ['1103', '1107']);
   });
 
   test('404 si la calle no existe', async () => {

@@ -4,12 +4,13 @@ import * as recursoRepository from '../repositories/recursoRepository.js';
 import * as unidadesRepository from '../repositories/unidadesRepository.js';
 
 export async function obtenerMetadatos() {
-  const [recursos, reglas, abreviaturas, nombresExcluidos, resumen] = await Promise.all([
+  const [recursos, reglas, abreviaturas, nombresExcluidos, resumen, calidad] = await Promise.all([
     recursoRepository.listarRecursos(),
     recursoRepository.listarReglas(),
     recursoRepository.listarAbreviaturas(),
     recursoRepository.listarNombresExcluidos(),
     recursoRepository.obtenerResumen(),
+    recursoRepository.obtenerCalidad(),
   ]);
 
   return {
@@ -18,6 +19,7 @@ export async function obtenerMetadatos() {
     abreviaturas,
     nombres_excluidos: nombresExcluidos,
     resumen,
+    calidad,
     sistema_referencia: {
       almacenamiento: 'EPSG:4674 (SIRGAS 2000 geográfico)',
       salida_api: 'EPSG:4326 (WGS 84, GeoJSON)',

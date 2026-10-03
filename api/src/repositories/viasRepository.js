@@ -95,6 +95,13 @@ export async function obtenerPorId(id) {
              FROM idepy.recurso r
              WHERE r.id IN (SELECT DISTINCT recurso_id FROM seg)
             ) AS fuentes,
+            -- La misma calle (mismo nombre_busqueda) en otras unidades administrativas
+            (SELECT coalesce(json_agg(json_build_object('id', o.id, 'codigo', ou.codigo, 'nombre', ou.nombre)
+                                      ORDER BY ou.nombre), '[]'::json)
+             FROM idepy.via o
+             JOIN idepy.unidad_administrativa ou ON ou.id = o.unidad_administrativa_id
+             WHERE o.nombre_busqueda = v.nombre_busqueda AND o.id <> v.id
+            ) AS misma_calle_en_otras_unidades,
             ST_AsGeoJSON(ST_Transform(v.geometria, 4326), 6)::json AS geometria
      FROM v
      JOIN idepy.unidad_administrativa u ON u.id = v.unidad_administrativa_id`,

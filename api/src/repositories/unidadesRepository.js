@@ -8,6 +8,11 @@ export function listarUnidades() {
            count(v.id)                         AS cantidad_calles,
            coalesce(sum(v.cantidad_segmentos), 0) AS cantidad_segmentos,
            coalesce(sum(v.longitud_total_m), 0)   AS longitud_total_m,
+           -- punto garantizado dentro del polígono, para ubicar la etiqueta del distrito
+           json_build_array(
+             round(ST_X(ST_Transform(ST_PointOnSurface(u.geometria), 4326))::numeric, 6),
+             round(ST_Y(ST_Transform(ST_PointOnSurface(u.geometria), 4326))::numeric, 6)
+           ) AS etiqueta,
            ST_AsGeoJSON(ST_Transform(u.geometria, 4326), 6)::json AS geometria
     FROM idepy.unidad_administrativa u
     LEFT JOIN idepy.via v ON v.unidad_administrativa_id = u.id
