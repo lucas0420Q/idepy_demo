@@ -30,6 +30,18 @@ export function listarNombresExcluidos() {
     ORDER BY e.codigo_unidad, e.nombre`);
 }
 
+// Indicadores de calidad calculados sobre los datos cargados (no escritos a mano).
+export async function obtenerCalidad() {
+  const [fila] = await query(`
+    SELECT count(*) FILTER (WHERE s.nombre_original LIKE '%?%')                          AS segmentos_con_caracter_danado,
+           count(DISTINCT s.nombre_original) FILTER (WHERE s.nombre_original LIKE '%?%') AS nombres_con_caracter_danado,
+           count(*) FILTER (WHERE NOT ST_Intersects(s.geometria, u.geometria))           AS segmentos_fuera_de_su_unidad,
+           (SELECT count(*) FROM idepy.via WHERE cardinality(variantes) > 1)             AS calles_con_variantes
+    FROM idepy.via_segmento s
+    JOIN idepy.unidad_administrativa u ON u.id = s.unidad_administrativa_id`);
+  return fila;
+}
+
 export async function obtenerResumen() {
   const [fila] = await query(`
     SELECT (SELECT count(*) FROM idepy.unidad_administrativa) AS unidades,
