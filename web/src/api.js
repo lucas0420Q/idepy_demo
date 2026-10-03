@@ -44,6 +44,7 @@ async function pedir(ruta, senal) {
 export const api = {
   unidades: (senal) => pedir('/api/unidades', senal),
   recurso: (senal) => pedir('/api/recurso', senal),
+  red: (senal) => pedir('/api/red', senal),
   buscar: (q, unidad, senal) => {
     const parametros = new URLSearchParams({ q });
     if (unidad) parametros.set('unidad', unidad);

@@ -9,6 +9,10 @@ import { verificarBase } from '../repositories/saludRepository.js';
 
 export const rutas = Router();
 
+// Los datos solo cambian al reimportar: el navegador puede reutilizar estas respuestas
+// por 5 minutos (y después revalida con el ETag que Express agrega solo).
+const CACHE_CATALOGO = 'public, max-age=300';
+
 // Estado de la API y de la conexión a la base. Responde 503 si la base no está disponible.
 rutas.get('/health', async (req, res) => {
   const fecha = new Date().toISOString();
@@ -22,11 +26,16 @@ rutas.get('/health', async (req, res) => {
 });
 
 rutas.get('/recurso', async (req, res) => {
-  res.json(await catalogoService.obtenerMetadatos());
+  res.set('Cache-Control', CACHE_CATALOGO).json(await catalogoService.obtenerMetadatos());
 });
 
 rutas.get('/unidades', async (req, res) => {
-  res.json(await catalogoService.listarUnidades());
+  res.set('Cache-Control', CACHE_CATALOGO).json(await catalogoService.listarUnidades());
+});
+
+// Red vial completa (fondo del mapa), simplificada
+rutas.get('/red', async (req, res) => {
+  res.set('Cache-Control', CACHE_CATALOGO).json(await viasService.obtenerRed());
 });
 
 rutas.get('/vias', async (req, res) => {

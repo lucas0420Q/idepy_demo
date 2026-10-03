@@ -2,6 +2,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import { config } from './config.js';
 import { rutas } from './routes/index.js';
 import { registroSolicitudes } from './middleware/registroSolicitudes.js';
@@ -16,6 +17,9 @@ export function crearApp() {
 
   // CORS: solo el frontend local puede llamar a la API desde el navegador, y solo con GET.
   app.use(cors({ origin: config.origenesCors, methods: ['GET'] }));
+
+  // gzip: la red vial completa (/api/red) pasa de ~970 KB a ~175 KB
+  app.use(compression());
 
   app.use('/api', rutas);
 

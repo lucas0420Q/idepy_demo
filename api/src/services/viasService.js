@@ -57,6 +57,10 @@ export async function buscarVias(parametros) {
   };
 }
 
+export function obtenerRed() {
+  return viasRepository.listarRed();
+}
+
 export async function obtenerVia(idTexto) {
   const id = validarId(idTexto);
   const via = await viasRepository.obtenerPorId(id);

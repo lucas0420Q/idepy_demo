@@ -2,7 +2,7 @@
 // seleccionada, pestaña) y lo reparte entre el panel y el mapa.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useBusqueda, useCatalogo, useDetalle } from './hooks.js';
+import { useBusqueda, useCatalogo, useDetalle, useRed } from './hooks.js';
 import { tituloNombre } from './formato.js';
 import Buscador from './components/Buscador.jsx';
 import ListaResultados from './components/ListaResultados.jsx';
@@ -23,6 +23,7 @@ export default function App() {
   const [vista, setVista] = useState(null);
 
   const catalogo = useCatalogo();
+  const red = useRed();
   const busqueda = useBusqueda(texto, unidad);
   const detalle = useDetalle(seleccionId);
 
@@ -184,7 +185,9 @@ export default function App() {
               <FichaDetalle
                 ref={fichaRef}
                 detalle={detalle}
-                nombreProvisorio={featureSeleccionada?.properties.nombre}
+                nombreProvisorio={
+                  (featureSeleccionada ?? red?.features.find((f) => f.id === seleccionId))?.properties.nombre
+                }
                 metadatos={catalogo.metadatos}
                 onCerrar={cerrarFicha}
                 onSeleccionar={seleccionar}
@@ -206,6 +209,7 @@ export default function App() {
       <section className="mapwrap" aria-label="Mapa">
         <Mapa
           unidades={unidades}
+          red={red}
           unidadActiva={unidad}
           resultados={resultados}
           geometriaSeleccion={geometriaSeleccion}

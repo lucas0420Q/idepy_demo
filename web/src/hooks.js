@@ -29,6 +29,23 @@ export function useCatalogo() {
   return { ...estado, reintentar };
 }
 
+// Red vial completa para el fondo del mapa. Va aparte del catálogo: si falla, el mapa
+// simplemente se muestra sin el fondo y todo lo demás sigue funcionando.
+export function useRed() {
+  const [red, setRed] = useState(null);
+  useEffect(() => {
+    const control = new AbortController();
+    api
+      .red(control.signal)
+      .then(setRed)
+      .catch((error) => {
+        if (!esCancelacion(error)) console.warn(`Red vial no disponible: ${error.message}`);
+      });
+    return () => control.abort();
+  }, []);
+  return red;
+}
+
 // Búsqueda de calles. Mientras carga conserva los resultados anteriores (la lista no
 // "parpadea"). Estados: vacio | cargando | ok | invalida (400) | error.
 export function useBusqueda(texto, unidad) {

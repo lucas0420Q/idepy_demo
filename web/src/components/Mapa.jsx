@@ -1,6 +1,6 @@
 // Mapa Leaflet (react-leaflet) con mapa base OpenStreetMap.
 // Capas, de abajo hacia arriba:
-//   distritos (polígonos + etiqueta) -> coincidencias de la búsqueda -> calle seleccionada
+//   distritos (polígonos + etiqueta) -> red vial + coincidencias -> calle seleccionada
 // Cada capa va en su propio "pane" para que el orden no dependa de qué dato llegó primero.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -13,9 +13,11 @@ const CENTRO_INICIAL = [-25.345, -57.555]; // Gran Asunción, hasta que cargan l
 // zIndex de cada pane y si recibe clics. Cada pane tiene su propio canvas, que cubre todo
 // el mapa: si un pane sin capas interactivas recibiera eventos, taparía los clics y
 // tooltips de las coincidencias que están debajo.
+// La red vial y las coincidencias comparten pane (un solo canvas) para que ambas reciban
+// clics; la red se manda al fondo de ese canvas con bringToBack().
 const PANES = {
   distritos: { zIndex: 350, interactivo: false },
-  resultados: { zIndex: 410, interactivo: true },
+  vias: { zIndex: 410, interactivo: true },
   seleccion: { zIndex: 420, interactivo: false },
 };
 
@@ -24,6 +26,7 @@ function leerColores() {
   const css = getComputedStyle(document.documentElement);
   const valor = (nombre) => css.getPropertyValue(nombre).trim();
   return {
+    red: valor('--net'),
     acento: valor('--accent'),
     suave: valor('--accent-soft'),
     tenue: valor('--muted'),
@@ -114,6 +117,43 @@ function CapaDistritos({ unidades, unidadActiva, colores, renderer }) {
   return null;
 }
 
+const textoTooltip = (f) =>
+  `${escaparHtml(f.properties.nombre)}<span class="t2">${escaparHtml(tituloNombre(f.properties.unidad.nombre))}</span>`;
+
+// Fondo: todas las calles con nombre. Se puede hacer clic en cualquiera para verla.
+function CapaRed({ red, unidadActiva, colores, renderer, onSeleccionar }) {
+  const map = useMap();
+  const capas = useRef([]);
+  const alSeleccionar = useRef(onSeleccionar);
+  useLayoutEffect(() => {
+    alSeleccionar.current = onSeleccionar;
+  });
+
+  useEffect(() => {
+    if (!red) return undefined;
+    const grupo = L.featureGroup().addTo(map);
+    capas.current = red.features.map((f) => {
+      const capa = L.geoJSON(f, { renderer });
+      capa.bindTooltip(textoTooltip(f), { sticky: true, direction: 'top', offset: [0, -6] });
+      capa.on('click', () => alSeleccionar.current(f.id, true));
+      capa.addTo(grupo);
+      return { capa, unidad: f.properties.unidad.codigo };
+    });
+    grupo.bringToBack(); // debajo de las coincidencias, aunque llegue después
+    return () => grupo.remove();
+  }, [map, red, renderer]);
+
+  // Las calles de otros distritos se atenúan cuando hay un distrito filtrado
+  useEffect(() => {
+    for (const { capa, unidad } of capas.current) {
+      const atenuada = unidadActiva && unidad !== unidadActiva;
+      capa.setStyle({ color: colores.red, weight: 1.1, opacity: atenuada ? 0.3 : 0.85 });
+    }
+  }, [red, unidadActiva, colores]);
+
+  return null;
+}
+
 function CapaResultados({ features, colores, renderer, onSeleccionar }) {
   const map = useMap();
   // El clic usa siempre la versión más reciente de onSeleccionar sin recrear la capa
@@ -129,10 +169,7 @@ function CapaResultados({ features, colores, renderer, onSeleccionar }) {
         renderer,
         style: { color: colores.acento, weight: 3.4, opacity: 1 },
       });
-      capa.bindTooltip(
-        `${escaparHtml(f.properties.nombre)}<span class="t2">${escaparHtml(tituloNombre(f.properties.unidad.nombre))}</span>`,
-        { sticky: true, direction: 'top', offset: [0, -6] }
-      );
+      capa.bindTooltip(textoTooltip(f), { sticky: true, direction: 'top', offset: [0, -6] });
       capa.on('click', () => alSeleccionar.current(f.id, true));
       capa.addTo(grupo);
     }
@@ -174,13 +211,14 @@ function ControlVista({ vista }) {
   return null;
 }
 
-function Capas({ unidades, unidadActiva, resultados, geometriaSeleccion, vista, onSeleccionar }) {
+function Capas({ unidades, red, unidadActiva, resultados, geometriaSeleccion, vista, onSeleccionar }) {
   const colores = useColores();
   const renderers = usePanes();
   return (
     <>
       <CapaDistritos unidades={unidades} unidadActiva={unidadActiva} colores={colores} renderer={renderers.distritos} />
-      <CapaResultados features={resultados} colores={colores} renderer={renderers.resultados} onSeleccionar={onSeleccionar} />
+      <CapaRed red={red} unidadActiva={unidadActiva} colores={colores} renderer={renderers.vias} onSeleccionar={onSeleccionar} />
+      <CapaResultados features={resultados} colores={colores} renderer={renderers.vias} onSeleccionar={onSeleccionar} />
       <CapaSeleccion geometria={geometriaSeleccion} colores={colores} renderer={renderers.seleccion} />
       <ControlVista vista={vista} />
     </>
@@ -203,6 +241,7 @@ export default function Mapa(props) {
       <div className="legend" aria-hidden="true">
         <div><span className="sw s" />Calle seleccionada</div>
         <div><span className="sw m" />Otras coincidencias</div>
+        <div><span className="sw" />Red vial con nombre</div>
         <div><span className="sw d" />Límite de distrito</div>
       </div>
     </>
