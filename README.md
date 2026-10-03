@@ -124,7 +124,7 @@ No hace falta instalar nada en forma global con npm: todas las dependencias qued
 ### 4.2. Clonar el repositorio
 
 ```bash
-git clone <url-del-repositorio> idepy_demo
+git clone https://github.com/lucas0420Q/idepy_demo.git
 cd idepy_demo
 ```
 
