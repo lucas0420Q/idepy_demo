@@ -75,7 +75,19 @@ controles (orden, control, resultado, esperado) AS (
   (19, 'Búsqueda sin letras ni números ("...") devuelve 0 filas',
        (SELECT count(*)::text FROM idepy.buscar_vias('...')), '0'),
   (20, 'Normalización de ejemplo',
-       idepy.normalizar_nombre('Avda. Mcal. López / Tte.Cnel. MU?OZ'), 'AVENIDA MARISCAL LOPEZ TENIENTE CORONEL MUNOZ')
+       idepy.normalizar_nombre('Avda. Mcal. López / Tte.Cnel. MU?OZ'), 'AVENIDA MARISCAL LOPEZ TENIENTE CORONEL MUNOZ'),
+  -- Doble lectura de abreviaturas (007)
+  (21, 'Búsqueda "cap" incluye CAPILLA CUE (lectura literal) y CAPITAN BADO (expandida)',
+       (SELECT count(DISTINCT v.nombre_busqueda)::text FROM idepy.buscar_vias('cap') b JOIN idepy.via v ON v.id = b.via_id
+         WHERE v.nombre_busqueda IN ('CAPILLA CUE', 'CAPITAN BADO')), '2'),
+  (22, 'Búsqueda "ing" incluye INGAVI',
+       (SELECT count(*)::text FROM idepy.buscar_vias('ing') b JOIN idepy.via v ON v.id = b.via_id
+         WHERE v.nombre_busqueda = 'INGAVI'), '2'),
+  (23, 'Búsqueda "dr": la lectura literal (DREBUL) queda en rango 5, después de DOCTOR',
+       (SELECT b.rango::text FROM idepy.buscar_vias('dr') b JOIN idepy.via v ON v.id = b.via_id
+         WHERE v.nombre_busqueda = 'VALENTIN DREBUL'), '5'),
+  (24, 'Búsqueda "av mcal lopez" (palabras completas, sin cambios)',
+       (SELECT count(*)::text FROM idepy.buscar_vias('av mcal lopez')), '2')
 )
 SELECT orden AS "#", control, resultado, esperado, resultado IS NOT DISTINCT FROM esperado AS ok
 FROM controles
