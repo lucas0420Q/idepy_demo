@@ -67,6 +67,8 @@ CREATE INDEX        IF NOT EXISTS via_nombre_trgm       ON idepy.via USING gin (
 CREATE INDEX        IF NOT EXISTS via_geometria_gist    ON idepy.via USING gist (geometria);
 
 -- Búsqueda ---------------------------------------------------------------------------
+-- NOTA: 007_busqueda_doble_lectura.sql reemplaza esta función (doble lectura de
+-- abreviaturas). Se conserva aquí la versión original como parte del historial.
 -- La consulta se normaliza con la MISMA función que los datos y se divide en tokens.
 -- TODOS los tokens deben cumplirse:
 --   * token solo numérico -> debe ser una palabra exacta del nombre

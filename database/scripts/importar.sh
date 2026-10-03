@@ -2,7 +2,7 @@
 # importar.sh — Carga reproducible de la demo IDEPY en PostgreSQL (Postgres.app, puerto 5433).
 #
 # Pasos:
-#   1. Migraciones 000..006 (crean base, extensiones, esquemas, tablas, vista, usuario).
+#   1. Migraciones 000..N (crean base, extensiones, esquemas, tablas, vista, usuario).
 #   2. ogr2ogr: datos/idepy_demo.gpkg -> esquema staging (carga cruda, sin transformar).
 #   3. transformar.sql: staging -> modelo final idepy aplicando las reglas.
 #
@@ -51,12 +51,12 @@ psql_admin -d postgres -c 'SELECT 1' >/dev/null \
 # --- 1. Migraciones ----------------------------------------------------------------------
 paso "Migraciones"
 psql_admin -d postgres -f "$RAIZ/database/migrations/000_crear_base.sql"
-for archivo in "$RAIZ"/database/migrations/00[1-5]_*.sql; do
+# Todas las migraciones 001..N en orden. app_password solo la usa 006_rol_app.sql.
+for archivo in "$RAIZ"/database/migrations/[0-9][0-9][0-9]_*.sql; do
+  [[ "$(basename "$archivo")" == 000_* ]] && continue
   echo "    $(basename "$archivo")"
-  psql_admin -d "$BASE" -f "$archivo"
+  psql_admin -d "$BASE" -v app_password="$APP_PASSWORD" -f "$archivo"
 done
-echo "    006_rol_app.sql"
-psql_admin -d "$BASE" -v app_password="$APP_PASSWORD" -f "$RAIZ/database/migrations/006_rol_app.sql"
 
 # --- 2. Carga cruda a staging ------------------------------------------------------------
 paso "ogr2ogr: $(basename "$GPKG") -> staging"
