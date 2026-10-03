@@ -63,6 +63,20 @@ describe('GET /api/unidades', () => {
   });
 });
 
+describe('GET /api/red', () => {
+  test('devuelve todas las calles (2.118) como GeoJSON, comprimido y con caché', async () => {
+    const r = await request(app).get('/api/red').set('Accept-Encoding', 'gzip');
+    assert.equal(r.status, 200);
+    assert.equal(r.headers['content-encoding'], 'gzip');
+    assert.match(r.headers['cache-control'], /max-age=300/);
+    assert.equal(r.body.type, 'FeatureCollection');
+    assert.equal(r.body.features.length, 2118);
+    const f = r.body.features[0];
+    assert.equal(f.geometry.type, 'MultiLineString');
+    assert.deepEqual(Object.keys(f.properties).sort(), ['id', 'nombre', 'unidad']);
+  });
+});
+
 describe('GET /api/vias (búsqueda)', () => {
   test('"cerro cora" -> 3 calles, una por distrito', async () => {
     const cuerpo = await buscar({ q: 'cerro cora' });

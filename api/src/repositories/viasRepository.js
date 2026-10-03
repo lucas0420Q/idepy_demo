@@ -39,6 +39,28 @@ export function buscar(texto, codigoUnidad, limite) {
   );
 }
 
+// Red vial completa (todas las calles, simplificadas) para el fondo del mapa. El JSON se
+// arma en PostgreSQL con json_agg: una sola fila, sin recorrer 2.118 filas en Node.
+export async function listarRed() {
+  const [fila] = await query(
+    `SELECT json_build_object(
+              'type', 'FeatureCollection',
+              'features', coalesce(json_agg(json_build_object(
+                'type', 'Feature',
+                'id', v.id,
+                'geometry', ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(v.geometria, $1), 4326), 6)::json,
+                'properties', json_build_object(
+                  'id', v.id, 'nombre', v.nombre_mostrado,
+                  'unidad', json_build_object('codigo', u.codigo, 'nombre', u.nombre))
+              ) ORDER BY v.id), '[]'::json)
+            ) AS red
+     FROM idepy.via v
+     JOIN idepy.unidad_administrativa u ON u.id = v.unidad_administrativa_id`,
+    [TOLERANCIA_SIMPLIFICACION]
+  );
+  return fila.red;
+}
+
 // Cuántas coincidencias hay en las OTRAS unidades (para el aviso "sin resultados en
 // este distrito, pero hay N en otros").
 export function contarEnOtrasUnidades(texto, codigoUnidad) {
