@@ -87,9 +87,9 @@ Recorrido de una búsqueda:
 
 | Componente | Versión usada | Mínimo |
 |---|---|---|
-| macOS | Apple Silicon | (los scripts de carga usan rutas de Postgres.app) |
+| Sistema operativo | macOS (Apple Silicon) | macOS o Windows 10/11 (en Windows, con Git Bash) |
 | [Postgres.app](https://postgresapp.com) | PostgreSQL 17.11, PostGIS 3.5.6 | PostgreSQL 17 con PostGIS, `unaccent` y `pg_trgm` |
-| GDAL / `ogr2ogr` | 3.8.5 (incluido en Postgres.app) | con drivers GPKG y PostgreSQL |
+| GDAL / `ogr2ogr` | 3.8.5 (incluido en Postgres.app) | opcional: sin `ogr2ogr` se usa `database/datos/staging.sql` |
 | Node.js | 24.17 | `^20.19.0` o `>=22.12.0` (lo exige Vite) |
 | npm | 11 | |
 | git | 2.x | |
@@ -171,7 +171,15 @@ Se puede ejecutar todas las veces que haga falta (es **idempotente**). Al final 
 INFO:  Segmentos: staging=10712, excluidos=3, cargados=10709
 ```
 
-Variables opcionales: `ADMIN_PGHOST`, `ADMIN_PGPORT` (5433), `ADMIN_PGUSER` (`$USER`) y `PGBIN` (carpeta de `psql` y `ogr2ogr`).
+Variables opcionales: `ADMIN_PGHOST`, `ADMIN_PGPORT` (5433 en Mac, 5432 en Windows), `ADMIN_PGUSER` (`$USER` en Mac, `postgres` en Windows), `ADMIN_PGPASSWORD`, `PGBIN` (carpeta de `psql`), `OGR2OGR` y `CARGA_STAGING=sql`.
+
+**Sin ogr2ogr (por ejemplo, Windows sin QGIS):** el script usa automáticamente [`database/datos/staging.sql`](database/datos/staging.sql), que es la misma carga cruda guardada como SQL (generada con `database/scripts/generar_staging_sql.sh`). Se comprobó que ambos caminos dejan `staging` idéntico, fila por fila y geometría por geometría.
+
+**En Windows** (Git Bash, instalador oficial de PostgreSQL 17 + PostGIS, puerto 5432):
+
+```bash
+ADMIN_PGPASSWORD='<contraseña del usuario postgres>' bash database/scripts/importar.sh
+```
 
 Verificación de la carga:
 
@@ -513,10 +521,12 @@ idepy_demo/
 │   │   ├── 006_rol_app.sql          usuario idepy_app con permisos mínimos
 │   │   └── 007_busqueda_doble_lectura.sql  buscar_vias definitiva y reglas de búsqueda
 │   ├── scripts/
-│   │   ├── importar.sh              carga completa reproducible
+│   │   ├── importar.sh              carga completa reproducible (macOS y Windows/Git Bash)
+│   │   ├── generar_staging_sql.sh   regenera datos/staging.sql desde el GeoPackage
 │   │   ├── transformar.sql          staging → idepy con controles
 │   │   ├── verificar.sql            24 controles con resultado esperado
 │   │   └── recalcular_nombre_busqueda.sql
+│   ├── datos/staging.sql            carga cruda en SQL, para equipos sin ogr2ogr
 │   └── pg_hba_idepy.conf            bloque de autenticación para idepy_app
 ├── api/
 │   ├── .env.example
@@ -570,7 +580,7 @@ idepy_demo/
 - **Búsqueda sin tolerancia a errores de tipeo:** se busca por contenido, no por similitud.
 - **`id` de calle:** es estable entre recargas de los mismos datos, pero puede cambiar si se reimportan datos distintos.
 - **Abreviaturas:** si se cambia la tabla, hay que recalcular `nombre_busqueda` (script incluido).
-- **Entorno:** `importar.sh` asume macOS + Postgres.app (se puede ajustar con `PGBIN` y las variables `ADMIN_*`). La configuración de `pg_hba.conf` es manual.
+- **Entorno:** el camino de macOS + Postgres.app está probado de punta a punta. El de Windows (Git Bash + instalador oficial) se preparó con valores por defecto, `.gitattributes` y la carga sin `ogr2ogr`, pero no se probó en una PC con Windows. La configuración de `pg_hba.conf` es manual.
 - **Mapa base:** depende de las teselas públicas de OpenStreetMap, aptas para una demo pero no para uso intensivo en producción.
 - **Sin autenticación de usuarios:** es una consulta pública de solo lectura.
 
