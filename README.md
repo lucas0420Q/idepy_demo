@@ -173,7 +173,7 @@ INFO:  Segmentos: staging=10712, excluidos=3, cargados=10709
 
 Variables opcionales: `ADMIN_PGHOST`, `ADMIN_PGPORT` (5433 en Mac, 5432 en Windows), `ADMIN_PGUSER` (`$USER` en Mac, `postgres` en Windows), `ADMIN_PGPASSWORD`, `PGBIN` (carpeta de `psql`), `OGR2OGR` y `CARGA_STAGING=sql`.
 
-**Sin ogr2ogr (por ejemplo, Windows sin QGIS):** el script usa automáticamente [`database/datos/staging.sql`](database/datos/staging.sql), que es la misma carga cruda guardada como SQL (generada con `database/scripts/generar_staging_sql.sh`). Se comprobó que ambos caminos dejan `staging` idéntico, fila por fila y geometría por geometría.
+**Sin ogr2ogr (y siempre en Windows):** el script usa automáticamente [`database/datos/staging.sql`](database/datos/staging.sql), que es la misma carga cruda guardada como SQL (generada con `database/scripts/generar_staging_sql.sh`). Se comprobó que ambos caminos dejan `staging` idéntico, fila por fila y geometría por geometría.
 
 **En Windows** (Git Bash, instalador oficial de PostgreSQL 17 + PostGIS, puerto 5432):
 

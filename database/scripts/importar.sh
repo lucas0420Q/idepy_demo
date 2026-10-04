@@ -21,7 +21,7 @@
 #   ADMIN_PGHOST, ADMIN_PGPORT, ADMIN_PGUSER, ADMIN_PGPASSWORD  conexión administrativa
 #   PGBIN            carpeta de psql
 #   OGR2OGR          ruta de ogr2ogr (por defecto, junto a psql)
-#   CARGA_STAGING    "sql" para usar staging.sql aunque haya ogr2ogr
+#   CARGA_STAGING    "sql" para usar staging.sql aunque haya ogr2ogr (por defecto en Windows)
 
 set -euo pipefail
 
@@ -33,6 +33,9 @@ case "$(uname -s)" in
     PGBIN="${PGBIN:-/c/Program Files/PostgreSQL/17/bin}"
     PUERTO="${ADMIN_PGPORT:-5432}"
     USUARIO="${ADMIN_PGUSER:-postgres}"
+    # En Windows se carga siempre desde staging.sql (no depende de GDAL/PROJ), salvo
+    # que se pida otra cosa con CARGA_STAGING=ogr2ogr.
+    CARGA_STAGING="${CARGA_STAGING:-sql}"
     ;;
   *)                          # macOS: Postgres.app crea el superusuario con el usuario de macOS
     PGBIN="${PGBIN:-/Applications/Postgres.app/Contents/Versions/17/bin}"
